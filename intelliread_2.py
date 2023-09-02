@@ -1,4 +1,4 @@
-
+from dotenv import load_dotenv
 import streamlit as st
 from PyPDF2 import PdfReader
 from langchain.text_splitter import CharacterTextSplitter
@@ -51,5 +51,5 @@ def main():
         st.write(response)
     
 
-if __name__ == '__main__':
+if _name_ == '_main_':
     main()
