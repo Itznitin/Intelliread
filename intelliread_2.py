@@ -51,5 +51,5 @@ def main():
         st.write(response)
     
 
-if _name_ == '_main_':
+if __name__ == '_main_':
     main()
