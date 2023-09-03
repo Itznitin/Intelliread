@@ -2,33 +2,30 @@ from dotenv import load_dotenv
 import streamlit as st
 from PyPDF2 import PdfReader
 from langchain.text_splitter import CharacterTextSplitter
-from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.vectorstores import FAISS
+from transformers import AutoTokenizer, AutoModel
 from langchain.chains.question_answering import load_qa_chain
 from langchain.llms import OpenAI
 from langchain.callbacks import get_openai_callback
 import time
-
+import torch
+import pinecone
+from langchain.prompts import PromptTemplate
+from langchain.chains import LLMChain
+import os
 def main():
-    load_dotenv()
+    os.environ["OPENAI_API_KEY"] = "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"
     st.set_page_config(page_title="Intelliread")
-    
-    # Display the heading and subheading with default styling
     st.header("INTELLIREAD")
     st.subheader("Illuminating PDFs with Intelligent Answers")
-    
-    # upload file
     pdf = st.file_uploader("Upload your PDF", type="pdf")
-    
-    # extract the text
+    #text extraction
     if pdf is not None:
         progress_bar = st.progress(0)
         pdf_reader = PdfReader(pdf)
         text = ""
         for page in pdf_reader.pages:
             text += page.extract_text()
-            progress_bar.progress(33)
-
+            progress_bar.progress(25)
         # split into chunks
         text_splitter = CharacterTextSplitter(
             separator="\n",
@@ -37,35 +34,74 @@ def main():
             length_function=len
         )
         chunks = text_splitter.split_text(text)
-        progress_bar.progress(66)
+        progress_bar.progress(50)
+       
+        # convert chunks into embeddings
+        model_name = 'sentence-transformers/all-MiniLM-L6-v2'
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model = AutoModel.from_pretrained(model_name)
+        embeddings = []
+        for chunk in chunks:
+            input_ids = tokenizer.encode(chunk, return_tensors='pt')
+            with torch.no_grad():
+                output = model(input_ids)
+                embedding = output.last_hidden_state[:,0,:].numpy()
+                
+                embeddings.append(embedding.flatten().tolist())     
+        progress_bar.progress(75)
+   
+        #pinecone setup
+        pinecone.init(api_key='40d8baa1-0741-44ac-b7a1-ae2b9430360e', environment='gcp-starter')
+        index_name = "testing"
+        if index_name not in pinecone.list_indexes():
+            pinecone.create_index(index_name=index_name, metric="cosine", shards=1)
+        indexer = pinecone.Index(index_name=index_name)
 
-        # create embeddings for chunks and user query
-        embeddings = OpenAIEmbeddings()
-        vector_database = FAISS.from_texts(chunks, embeddings)
-        
-        # show user input
-        user_question = st.text_input("Ask a question about your PDF:")
-        
-        if user_question:
-            # create embedding for user query and add it to the vector database
-            user_query_embedding = embeddings.embed_text(user_question)
-            vector_database.add_vector(user_query_embedding, user_question)
-            
-            progress_bar.progress(100)
-            
-            time.sleep(0.5)
-            progress_bar.empty()
-
+        vectors =[]
+        id=[]
+        for j in range(0,len(embeddings)):
+            id.append(str(j))
+        for i in range(0, len(embeddings)):
+           tp={'id':id[i],'values':embeddings[i]}
+           vectors.append(tp)
+        indexer.upsert(vectors)
+        progress_bar.progress(100)
+        time.sleep(0.5)
+        progress_bar.empty()
+        #user query input
+        user_query = st.text_area("Enter Your Query")
+        if user_query:
             with st.spinner('Processing your query...'):
-                docs = vector_database.similarity_search(user_question)
-                
+                query_embeddings = []
+                query_input_ids = tokenizer.encode(user_query, return_tensors='pt')
+                with torch.no_grad():
+                    output = model(query_input_ids)
+                    query_embedding = output.last_hidden_state[:,0,:].numpy()
+                    query_embeddings.append(query_embedding.flatten().tolist())
+                search_results = indexer.query(query_embeddings, top_k=5)
+                ids=[]
+                for result in search_results['matches']:
+                    ids.append(f"{result['id']}")
+                print(int(ids[0]))
+                selected_chunk=[]
+                for j in range(0,5):
+                    selected_chunk.append(chunks[int(ids[j])])
+            
                 llm = OpenAI()
-                chain = load_qa_chain(llm, chain_type="stuff")
+                prompt = PromptTemplate(
+                    input_variables=["query", "database"],
+                    template="answer this {query}, Use knowledge from this text {database} to generate appropriate answer",
+                )
+                chain = LLMChain(llm=llm, prompt=prompt)
                 with get_openai_callback() as cb:
-                    response = chain.run(input_documents=docs, question=user_question, prompt=docs[0])
+                    response = chain.run({
+                        'query': user_query,
+                        'database': selected_chunk
+                    })
                     print(cb)
-                
                 st.write(response)
+    else:
+        st.write("Please upload a PDF file")
 
 if __name__ == '__main__':
     main()
