@@ -7,3 +7,5 @@ tiktoken==0.4.0
 python-dotenv==1.0.0
 ctransformers==0.2.25
 torch==2.0.1
+tokenizers==0.13.3
+transformers==4.32.0
