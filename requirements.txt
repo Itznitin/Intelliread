@@ -9,3 +9,4 @@ ctransformers==0.2.25
 torch==2.0.1
 tokenizers==0.13.3
 transformers==4.32.0
+pinecone-client==2.2.2

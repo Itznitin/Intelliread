@@ -1,9 +1,7 @@
-from dotenv import load_dotenv
 import streamlit as st
 from PyPDF2 import PdfReader
 from langchain.text_splitter import CharacterTextSplitter
 from transformers import AutoTokenizer, AutoModel
-from langchain.chains.question_answering import load_qa_chain
 from langchain.llms import OpenAI
 from langchain.callbacks import get_openai_callback
 import time
@@ -13,7 +11,7 @@ from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 import os
 def main():
-    os.environ["OPENAI_API_KEY"] = "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"
+    os.environ["OPENAI_API_KEY"] = "AP_KEY"
     st.set_page_config(page_title="Intelliread")
     st.header("INTELLIREAD")
     st.subheader("Illuminating PDFs with Intelligent Answers")
