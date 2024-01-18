@@ -11,7 +11,7 @@ from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 import os
 def main():
-    os.environ["OPENAI_API_KEY"] = "AP_KEY"
+    os.environ["OPENAI_API_KEY"] = "API_KEY"
     st.set_page_config(page_title="Intelliread")
     st.header("INTELLIREAD")
     st.subheader("Illuminating PDFs with Intelligent Answers")
