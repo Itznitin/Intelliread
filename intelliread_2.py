@@ -12,10 +12,12 @@ from langchain.chains import LLMChain
 from dotenv import load_dotenv
 import os
 def main():
+
     load_dotenv()  # take environment variables from .env.
     os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
     st.set_page_config(page_title="Intelliread 🗨️")
     st.header("INTELLIREAD 🗨️ ")
+
     st.subheader("Illuminating PDFs with Intelligent Answers")
     pdf = st.file_uploader("Upload your PDF", type="pdf")
     #text extraction
