@@ -9,11 +9,13 @@ import torch
 import pinecone
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
+from dotenv import load_dotenv
 import os
 def main():
-    os.environ["OPENAI_API_KEY"] = "AP_KEY"
-    st.set_page_config(page_title="Intelliread")
-    st.header("INTELLIREAD")
+    load_dotenv()  # take environment variables from .env.
+    os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+    st.set_page_config(page_title="Intelliread 🗨️")
+    st.header("INTELLIREAD 🗨️ ")
     st.subheader("Illuminating PDFs with Intelligent Answers")
     pdf = st.file_uploader("Upload your PDF", type="pdf")
     #text extraction
@@ -49,8 +51,8 @@ def main():
         progress_bar.progress(75)
    
         #pinecone setup
-        pinecone.init(api_key='40d8baa1-0741-44ac-b7a1-ae2b9430360e', environment='gcp-starter')
-        index_name = "testing"
+        pinecone.init(api_key='107badc9-220c-4a3e-b558-8223259ca8a6', environment='gcp-starter')
+        index_name = "intelliread"
         if index_name not in pinecone.list_indexes():
             pinecone.create_index(index_name=index_name, metric="cosine", shards=1)
         indexer = pinecone.Index(index_name=index_name)
@@ -85,7 +87,7 @@ def main():
                 for j in range(0,5):
                     selected_chunk.append(chunks[int(ids[j])])
             
-                llm = OpenAI()
+                llm = OpenAI(model="gpt-3.5-turbo-instruct")
                 prompt = PromptTemplate(
                     input_variables=["query", "database"],
                     template="answer this {query}, Use knowledge from this text {database} to generate appropriate answer",
